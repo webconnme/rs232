@@ -1,0 +1,9 @@
+[submodule "kernel"]
+	path = kernel
+	url = git@github.com:webconnme/kernel.git
+[submodule "bootloader"]
+	path = bootloader
+	url = git@github.com:webconnme/bootloader.git
+[submodule "buildroot"]
+	path = buildroot
+	url = git@github.com:webconnme/buildroot.git
