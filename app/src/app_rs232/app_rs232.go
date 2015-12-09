@@ -2,6 +2,7 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2015 Jane Lee <jane@webconn.me>
+ * Copyright (c) 2015 Edward Kim <edward@webconn.me>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +26,13 @@
 package main
 
 import (
-	"fmt"
+    "github.com/webconnme/go-webconn"
 	"github.com/mikepb/go-serial"
+)
+
+import (
+	"fmt"
 	"log"
-	"net/http"
-	"io/ioutil"
-	"strings"
-	"encoding/json"
 )
 
 type jconfig struct {
@@ -52,6 +53,8 @@ var RS232options = serial.Options{
 var RS232Path string
 var serialPort *serial.Port
 var url string
+
+var client *webconn.Webconn
 
 func RS232Open() {
 
@@ -77,7 +80,7 @@ func RS232Close() {
 	}
 }
 
-func RS232Rx(ch chan<- []byte) {
+func RS232Rx() {
 	for {
 		remain, err := serialPort.InputWaiting()
 		if err != nil {
@@ -91,7 +94,7 @@ func RS232Rx(ch chan<- []byte) {
 					log.Fatal(err)
 					panic(err)
 				}
-				ch <- buf
+                client.Write("rx", buf)
 				fmt.Println("len : ", len)
 
 			}
@@ -100,108 +103,28 @@ func RS232Rx(ch chan<- []byte) {
 	}
 }
 
-func RS232Tx(ch <-chan []byte) {
+func RS232Tx(buf []byte) error {
+    fmt.Println(">>>tx msg : ", string(buf))
+    _, err := serialPort.Write(buf)
 
-	for {
-		buf := <-ch
+    if err != nil {
+        return err
+    }
 
-		if len(buf) != 0 {
-			fmt.Println(">>>tx msg : ", string(buf))
-			_, err := serialPort.Write(buf)
-
-			if err != nil {
-				fmt.Println(">>>tx err : ",err)
-				continue
-			}
-		}
-
-	}
-}
-
-func httpget(ch chan<- []byte) {
-	var jconf []jconfig
-
-	for {
-		client := &http.Client{}
-
-		resp, err := client.Get(url)
-
-		if err != nil {
-			fmt.Println(err)
-
-		} else {
-			defer resp.Body.Close()
-			contexts, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				log.Fatal(err)
-			}
-			fmt.Println(">>>contexts : ", string(contexts), " for the url : ", url)
-			json.Unmarshal(contexts, &jconf)
-
-			for _, j:=range jconf {
-
-				if j.Command == "tx" {
-					fmt.Println(">>>recv data :", j.Data)
-					ch <- []byte(j.Data)
-				}
-			}
-
-		}
-
-	}
-}
-
-func httpPost(ch <-chan []byte) {
-
-	var jsconf jconfig
-	jsconf.Command = "rx"
-
-	for {
-		jsconf.Data = string(<-ch)
-		str, _ := json.Marshal(jsconf)
-
-		buf := []byte("["+string(str)+"]")
-		fmt.Println(">>>post : ",string(buf))
-
-		client := &http.Client{}
-		req, err := http.NewRequest("POST", url, strings.NewReader(string(buf)))
-		resp, err := client.Do(req)
-		if err != nil {
-
-			fmt.Println(err)
-
-		} else {
-			defer resp.Body.Close()
-			contexts, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			fmt.Println(">>>context : ",string(contexts))
-		}
-
-	}
+    return nil
 }
 
 func main() {
-
-	channel := make(chan bool)
-
-	rxchan := make(chan []byte)
-	txchan := make(chan []byte)
-
 	RS232Path = "/dev/ttyS1"
 	RS232Open()
+	defer RS232Close()
 
 	url = "Http://nor.kr:3000/v01/rs232/80"
 
-	go RS232Rx(rxchan)
-	go httpPost(rxchan)
-	go httpget(txchan)
-	go RS232Tx(txchan)
+    client = webconn.Client("http://nor.kr:3000/v01/rs232/80")
+    client.AddHandler("tx", RS232Tx)
 
-	<-channel
+	go RS232Rx()
 
-	RS232Close()
-
+    client.Run()
 }
