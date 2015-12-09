@@ -54,7 +54,7 @@ var RS232Path string
 var serialPort *serial.Port
 var url string
 
-var client *webconn.Webconn
+var client webconn.Webconn
 
 func RS232Open() {
 
@@ -121,7 +121,7 @@ func main() {
 
 	url = "Http://nor.kr:3000/v01/rs232/80"
 
-    client = webconn.Client("http://nor.kr:3000/v01/rs232/80")
+    client = webconn.NewClient("http://nor.kr:3000/v01/rs232/80")
     client.AddHandler("tx", RS232Tx)
 
 	go RS232Rx()
