@@ -26,8 +26,8 @@
 package main
 
 import (
-    "github.com/webconnme/go-webconn"
 	"github.com/mikepb/go-serial"
+	"github.com/webconnme/go-webconn"
 )
 
 import (
@@ -36,18 +36,18 @@ import (
 )
 
 type jconfig struct {
-	Command	string `json:"command"`
-	Data	string `json:"data"`
+	Command string `json:"command"`
+	Data    string `json:"data"`
 }
 
 var RS232options = serial.Options{
 
-	BitRate	 	: 115200,
-	DataBits 	: 8,
-	Parity	 	: serial.PARITY_NONE,
-	StopBits 	: 1,
-	FlowControl : serial.FLOWCONTROL_NONE,
-	Mode		: serial.MODE_READ_WRITE,
+	BitRate:     115200,
+	DataBits:    8,
+	Parity:      serial.PARITY_NONE,
+	StopBits:    1,
+	FlowControl: serial.FLOWCONTROL_NONE,
+	Mode:        serial.MODE_READ_WRITE,
 }
 
 var RS232Path string
@@ -67,7 +67,7 @@ func RS232Open() {
 
 	serialPort, err = options.Open(RS232Path)
 	if err != nil {
-		log.Fatal("serial open ",err)
+		log.Fatal("serial open ", err)
 	} else {
 		fmt.Println("serial open...")
 	}
@@ -94,7 +94,7 @@ func RS232Rx() {
 					log.Fatal(err)
 					panic(err)
 				}
-                client.Write("rx", buf)
+				client.Write("rx", buf)
 				fmt.Println("len : ", len)
 
 			}
@@ -104,14 +104,14 @@ func RS232Rx() {
 }
 
 func RS232Tx(buf []byte) error {
-    fmt.Println(">>>tx msg : ", string(buf))
-    _, err := serialPort.Write(buf)
+	fmt.Println(">>>tx msg : ", string(buf))
+	_, err := serialPort.Write(buf)
 
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }
 
 func main() {
@@ -121,10 +121,10 @@ func main() {
 
 	url = "Http://nor.kr:3000/v01/rs232/80"
 
-    client = webconn.NewClient("http://nor.kr:3000/v01/rs232/80")
-    client.AddHandler("tx", RS232Tx)
+	client = webconn.NewClient("http://nor.kr:3000/v01/rs232/80")
+	client.AddHandler("tx", RS232Tx)
 
 	go RS232Rx()
 
-    client.Run()
+	client.Run()
 }
